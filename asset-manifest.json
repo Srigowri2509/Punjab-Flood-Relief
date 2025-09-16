@@ -1,0 +1,15 @@
+{
+  "files": {
+    "main.css": "/Srigowri2509/Punjab-Flood-Relief/static/css/main.e6c13ad2.css",
+    "main.js": "/Srigowri2509/Punjab-Flood-Relief/static/js/main.711cf7da.js",
+    "static/js/453.97b90a09.chunk.js": "/Srigowri2509/Punjab-Flood-Relief/static/js/453.97b90a09.chunk.js",
+    "index.html": "/Srigowri2509/Punjab-Flood-Relief/index.html",
+    "main.e6c13ad2.css.map": "/Srigowri2509/Punjab-Flood-Relief/static/css/main.e6c13ad2.css.map",
+    "main.711cf7da.js.map": "/Srigowri2509/Punjab-Flood-Relief/static/js/main.711cf7da.js.map",
+    "453.97b90a09.chunk.js.map": "/Srigowri2509/Punjab-Flood-Relief/static/js/453.97b90a09.chunk.js.map"
+  },
+  "entrypoints": [
+    "static/css/main.e6c13ad2.css",
+    "static/js/main.711cf7da.js"
+  ]
+}
