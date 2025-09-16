@@ -1,192 +1,373 @@
+// src/components/AuthPage.js
 import React, { useState } from "react";
+import { useNavigate } from "react-router-dom";
+
+// ----- Aesthetic: same palette as landing page -----
+const PALETTE = {
+  page: "#f3eee6",
+  card: "#ffffff",
+  border: "#e7e3db",
+  dark: "#252323",
+  text: "#171717",
+  textSub: "#6b7280",
+  warm: "#a99985",
+};
+
+const S = {
+  page: {
+    minHeight: "100vh",
+    background: PALETTE.page,
+    color: PALETTE.text,
+    fontFamily:
+      'system-ui, -apple-system, "Segoe UI", Roboto, Arial, sans-serif',
+    display: "flex",
+    flexDirection: "column",
+  },
+  // top mini-header with logo (optional, matches landing)
+  headerBand: {
+    padding: "8px 0",
+    borderBottom: `1px solid ${PALETTE.border}`,
+    background: "#fff",
+  },
+  headerRow: {
+    maxWidth: 1200,
+    margin: "0 auto",
+    padding: "0 24px",
+    display: "flex",
+    alignItems: "center",
+    gap: 12,
+  },
+  logoBox: {
+    width: 44,
+    height: 44,
+    borderRadius: 12,
+    overflow: "hidden",
+    border: `1px solid ${PALETTE.border}`,
+    background: "#fff",
+    display: "grid",
+    placeItems: "center",
+  },
+  logoImg: { width: "100%", height: "100%", objectFit: "cover" },
+
+  // center card
+  centerWrap: {
+    flex: 1,
+    display: "grid",
+    placeItems: "center",
+    padding: "24px",
+  },
+  card: {
+    width: "100%",
+    maxWidth: 520,
+    background: PALETTE.card,
+    border: `1px solid ${PALETTE.border}`,
+    borderRadius: 16,
+    boxShadow: "0 6px 20px rgba(0,0,0,.08)",
+    padding: 20,
+  },
+  title: {
+    textAlign: "center",
+    margin: "6px 0 2px",
+    fontSize: 22,
+    fontWeight: 900,
+    color: PALETTE.dark,
+  },
+  sub: {
+    textAlign: "center",
+    margin: 0,
+    fontSize: 13,
+    color: PALETTE.textSub,
+  },
+  tabs: {
+    display: "grid",
+    gridTemplateColumns: "1fr 1fr",
+    gap: 8,
+    marginTop: 14,
+  },
+  tabBtn(active) {
+    return {
+      padding: "10px 12px",
+      borderRadius: 12,
+      border: `1px solid ${PALETTE.border}`,
+      background: active ? PALETTE.dark : "#fff",
+      color: active ? "#fff" : PALETTE.dark,
+      cursor: "pointer",
+      fontWeight: 700,
+    };
+  },
+  form: { marginTop: 14, display: "grid", gap: 10 },
+  label: {
+    fontSize: 12,
+    fontWeight: 600,
+    color: "#4b5563",
+    marginBottom: 4,
+    display: "block",
+  },
+  input: {
+    width: "100%",
+    padding: "10px 12px",
+    borderRadius: 12,
+    border: `1px solid ${PALETTE.border}`,
+    background: "#fff",
+    fontSize: 14,
+  },
+  submit: {
+    marginTop: 6,
+    width: "100%",
+    padding: "12px 14px",
+    borderRadius: 12,
+    border: "none",
+    background: PALETTE.dark,
+    color: "#fff",
+    fontSize: 16,
+    fontWeight: 700,
+    cursor: "pointer",
+  },
+  switchRow: { textAlign: "center", marginTop: 12, color: PALETTE.textSub },
+  link: {
+    color: PALETTE.dark,
+    textDecoration: "underline",
+    cursor: "pointer",
+    fontWeight: 700,
+  },
+  note: {
+    marginTop: 8,
+    fontSize: 12,
+    color: PALETTE.textSub,
+    textAlign: "center",
+  },
+};
+
+function toPublicUrl(input) {
+  if (!input) return input;
+  let s = String(input).replace(/\\/g, "/").trim();
+  if (/^(https?:)?\/\//i.test(s) || s.startsWith("data:")) return s;
+  if (s.startsWith("/")) return encodeURI(s);
+  s = s.replace(/^public\//, "");
+  return encodeURI("/" + s);
+}
 
 export default function AuthPage() {
+  const navigate = useNavigate();
   const [isRegister, setIsRegister] = useState(false);
+
   const [formData, setFormData] = useState({
-    ngoName: "",
-    headName: "",
-    mobile: "",
+    // Register fields (your requested ones)
+    personName: "",
+    orgName: "",
+    contact: "",
     email: "",
-    district: "",
-    address: "",
-    serviceType: "",
     password: "",
   });
 
-  const handleChange = (e) => {
-    setFormData({ ...formData, [e.target.name]: e.target.value });
-  };
+  const handleChange = (e) =>
+    setFormData((p) => ({ ...p, [e.target.name]: e.target.value }));
 
   const handleSubmit = (e) => {
     e.preventDefault();
+
     if (isRegister) {
-      alert("NGO Registered ✅\n\n" + JSON.stringify(formData, null, 2));
-    } else {
-      alert("Logged In ✅\n\nEmail: " + formData.email);
+      // Minimal client-side validation
+      if (
+        !formData.personName.trim() ||
+        !formData.orgName.trim() ||
+        !formData.contact.trim() ||
+        !formData.email.trim() ||
+        !formData.password.trim()
+      ) {
+        alert("Please fill all required fields.");
+        return;
+      }
+      alert(
+        "NGO Registered ✅\n\n" +
+          JSON.stringify(
+            {
+              personName: formData.personName,
+              orgName: formData.orgName,
+              contact: formData.contact,
+              email: formData.email,
+            },
+            null,
+            2
+          )
+      );
+      // Switch to login tab after register
+      setIsRegister(false);
+      return;
     }
+
+    // Login
+    if (!formData.email.trim() || !formData.password.trim()) {
+      alert("Please enter email and password.");
+      return;
+    }
+    alert("Logged In ✅\n\nEmail: " + formData.email);
+    navigate("/ngo/dashboard");
   };
 
   return (
-    <div style={styles.wrapper}>
-      <div style={styles.card}>
-        <h2 style={styles.title}>
-          {isRegister ? "NGO Registration" : "Government Portal Login"}
-        </h2>
+    <div style={S.page}>
+      {/* Mini header (logo on left to match landing) */}
+      <section style={S.headerBand}>
+        <div style={S.headerRow}>
+          <div style={S.logoBox}>
+            <img
+              src={toPublicUrl("/logo punjab.png")}
+              alt="Amritsar Flood Relief"
+              style={S.logoImg}
+            />
+          </div>
+          <div style={{ fontWeight: 700, color: PALETTE.textSub }}>
+            Official Portal
+          </div>
+        </div>
+      </section>
 
-        <form onSubmit={handleSubmit}>
-          {isRegister && (
-            <>
-              <input
-                type="text"
-                name="ngoName"
-                placeholder="Name of NGO"
-                value={formData.ngoName}
-                onChange={handleChange}
-                required
-                style={styles.input}
-              />
-              <input
-                type="text"
-                name="headName"
-                placeholder="Name of Head of NGO"
-                value={formData.headName}
-                onChange={handleChange}
-                required
-                style={styles.input}
-              />
-              <input
-                type="text"
-                name="mobile"
-                placeholder="Mobile Number"
-                value={formData.mobile}
-                onChange={handleChange}
-                required
-                style={styles.input}
-              />
-              <input
-                type="text"
-                name="district"
-                placeholder="District"
-                value={formData.district}
-                onChange={handleChange}
-                required
-                style={styles.input}
-              />
-              <textarea
-                name="address"
-                placeholder="Address"
-                value={formData.address}
-                onChange={handleChange}
-                required
-                style={{ ...styles.input, height: "70px" }}
-              />
-              <select
-                name="serviceType"
-                value={formData.serviceType}
-                onChange={handleChange}
-                required
-                style={styles.input}
-              >
-                <option value="">Select Type of Service</option>
-                <option value="Shelter">Shelter</option>
-                <option value="Food">Food</option>
-                <option value="Health">Health</option>
-                <option value="Rescue">Rescue</option>
-                <option value="Animal Care">Animal Care</option>
-                <option value="Transport">Transport</option>
-                <option value="Other">Other</option>
-              </select>
-            </>
+      {/* Centered auth card */}
+      <div style={S.centerWrap}>
+        <div style={S.card}>
+          <h2 style={S.title}>
+            {isRegister ? "Register NGO / Organisation" : "Government Portal Login"}
+          </h2>
+          <p style={S.sub}>
+            {isRegister
+              ? "Create an account to coordinate relief work in Amritsar."
+              : "Sign in to access the NGO dashboard."}
+          </p>
+
+          {/* Tabs */}
+          <div style={S.tabs}>
+            <button
+              type="button"
+              style={S.tabBtn(!isRegister)}
+              onClick={() => setIsRegister(false)}
+            >
+              Login
+            </button>
+            <button
+              type="button"
+              style={S.tabBtn(isRegister)}
+              onClick={() => setIsRegister(true)}
+            >
+              Register
+            </button>
+          </div>
+
+          {/* Form */}
+          <form style={S.form} onSubmit={handleSubmit} noValidate>
+            {isRegister ? (
+              <>
+                <div>
+                  <label style={S.label}>Name of the person *</label>
+                  <input
+                    style={S.input}
+                    name="personName"
+                    value={formData.personName}
+                    onChange={handleChange}
+                    placeholder="Full Name"
+                    required
+                  />
+                </div>
+                <div>
+                  <label style={S.label}>Name of organisation *</label>
+                  <input
+                    style={S.input}
+                    name="orgName"
+                    value={formData.orgName}
+                    onChange={handleChange}
+                    placeholder="Organisation Name"
+                    required
+                  />
+                </div>
+                <div>
+                  <label style={S.label}>Contact no *</label>
+                  <input
+                    style={S.input}
+                    name="contact"
+                    value={formData.contact}
+                    onChange={handleChange}
+                    placeholder="Phone Number"
+                    required
+                  />
+                </div>
+                <div>
+                  <label style={S.label}>Email *</label>
+                  <input
+                    type="email"
+                    style={S.input}
+                    name="email"
+                    value={formData.email}
+                    onChange={handleChange}
+                    placeholder="you@example.com"
+                    required
+                  />
+                </div>
+                <div>
+                  <label style={S.label}>Password *</label>
+                  <input
+                    type="password"
+                    style={S.input}
+                    name="password"
+                    value={formData.password}
+                    onChange={handleChange}
+                    placeholder="••••••••"
+                    required
+                  />
+                </div>
+              </>
+            ) : (
+              <>
+                <div>
+                  <label style={S.label}>Email *</label>
+                  <input
+                    type="email"
+                    style={S.input}
+                    name="email"
+                    value={formData.email}
+                    onChange={handleChange}
+                    placeholder="you@example.com"
+                    required
+                  />
+                </div>
+                <div>
+                  <label style={S.label}>Password *</label>
+                  <input
+                    type="password"
+                    style={S.input}
+                    name="password"
+                    value={formData.password}
+                    onChange={handleChange}
+                    placeholder="••••••••"
+                    required
+                  />
+                </div>
+              </>
+            )}
+
+            <button type="submit" style={S.submit}>
+              {isRegister ? "Register" : "Login"}
+            </button>
+          </form>
+
+          <div style={S.switchRow}>
+            {isRegister ? "Already registered? " : "New NGO? "}
+            <span
+              onClick={() => setIsRegister(!isRegister)}
+              style={S.link}
+              role="button"
+              tabIndex={0}
+            >
+              {isRegister ? "Login" : "Register"}
+            </span>
+          </div>
+
+          {!isRegister && (
+            <div style={S.note}>
+              Tip: Use the landing page CTA if you need help with registration.
+            </div>
           )}
-
-          {/* Common fields for both login/register */}
-          <input
-            type="email"
-            name="email"
-            placeholder="Email Address"
-            value={formData.email}
-            onChange={handleChange}
-            required
-            style={styles.input}
-          />
-          <input
-            type="password"
-            name="password"
-            placeholder="Password"
-            value={formData.password}
-            onChange={handleChange}
-            required
-            style={styles.input}
-          />
-
-          <button type="submit" style={styles.button}>
-            {isRegister ? "Register NGO" : "Login"}
-          </button>
-        </form>
-
-        <p style={{ textAlign: "center", marginTop: "15px" }}>
-          {isRegister ? "Already registered?" : "New NGO?"}{" "}
-          <span
-            onClick={() => setIsRegister(!isRegister)}
-            style={{ color: "#007bff", cursor: "pointer" }}
-          >
-            {isRegister ? "Login" : "Register"}
-          </span>
-        </p>
+        </div>
       </div>
     </div>
   );
 }
-
-const styles = {
-  wrapper: {
-    display: "flex",
-    justifyContent: "center",
-    alignItems: "center",
-    minHeight: "100vh",
-    background: "#f4f6f9",
-  },
-  card: {
-    width: "420px",
-    background: "white",
-    padding: "30px",
-    borderRadius: "12px",
-    boxShadow: "0 6px 20px rgba(0,0,0,0.1)",
-  },
-  title: {
-    textAlign: "center",
-    marginBottom: "20px",
-    color: "#222",
-  },
-  input: {
-    width: "100%",
-    padding: "10px",
-    margin: "8px 0",
-    borderRadius: "6px",
-    border: "1px solid #ccc",
-    fontSize: "14px",
-  },
-  button: {
-    width: "100%",
-    padding: "12px",
-    marginTop: "10px",
-    borderRadius: "6px",
-    border: "none",
-    background: "#007bff",
-    color: "white",
-    fontSize: "16px",
-    cursor: "pointer",
-  },
-};
-
-
-
-
-
-
-
-
-
-
-
-
