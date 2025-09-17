@@ -1,191 +1,151 @@
-// src/components/Portal.js
+// src/components/PortalShell.jsx
 import React from "react";
-import { NavLink, useLocation, useNavigate } from "react-router-dom";
+import { NavLink, Outlet, useLocation, useNavigate } from "react-router-dom";
 
-/**
- * Post-login shell (no submenus):
- * Left panel has 3 items: Villages, School Requirements, Veterinary Support.
- * Main area scrolls; sidebar stretches to bottom; compact spacing.
- */
-
-export default function Portal({ children }) {
-  const { pathname, hash } = useLocation();
-  const navigate = useNavigate();
-  const onDash = pathname.startsWith("/ngo/dashboard");
-
-  return (
-    <div style={S.root}>
-      {/* TOP BAR */}
-      <header style={S.header}>
-        <div style={S.headerRow}>
-          <div style={S.brandRow}>
-            <img src="/logo punjab.png" alt="Punjab" style={S.logo} />
-            <div>
-              <div style={S.title}>Amritsar Flood Relief</div>
-              <div style={S.sub}>
-                Saanjha Uprala — A Joint Initiative by District Administration, Amritsar and
-                Organisations
-              </div>
-            </div>
-          </div>
-
-          <div style={S.headerRight}>
-            <button
-              type="button"
-              style={S.topBtn}
-              onClick={() => navigate("/ngo/login")}
-              title="See what you can do"
-            >
-              See what you can do
-            </button>
-            <div style={S.avatar}>P</div>
-          </div>
-        </div>
-      </header>
-
-      {/* BODY */}
-      <div style={S.body}>
-        {/* LEFT: three simple items, no sub parts */}
-        <aside style={S.sidebarCard}>
-          <SimpleItem
-            to="/ngo/dashboard#villages"
-            label="Villages"
-            active={onDash && (!hash || hash === "#villages")}
-          />
-          <SimpleItem
-            to="/ngo/dashboard#schools"
-            label="School Requirements"
-            active={onDash && hash === "#schools"}
-          />
-          <SimpleItem
-            to="/ngo/dashboard#animal"
-            label="Veterinary Support"
-            active={onDash && hash === "#animal"}
-          />
-        </aside>
-
-        <main style={S.main}>{children}</main>
-      </div>
-    </div>
-  );
-}
-
-/* --------- Sidebar item (no submenu) --------- */
-function SimpleItem({ to, label, active }) {
-  return (
-    <NavLink to={to} style={{ textDecoration: "none" }}>
-      <div style={{ ...A.item, ...(active ? A.itemActive : null) }}>{label}</div>
-    </NavLink>
-  );
-}
-
-/* ----------------------------- Styles ---------------------------- */
-const C = {
-  dark: "#101723",
-  darkEdge: "#0b1220",
-  subText: "#aab2c2",
-  page: "#efe9dd",        // warm page bg
-  card: "#ffffff",
-  border: "#e6dfd2",
-  ring: "0 1px 6px rgba(0,0,0,.06)",
+const PALETTE = {
+  page: "#ede6db",
+  surface: "#ffffff",
+  border: "#e7e3db",
+  dark: "#0f172a",
+  darkSoft: "#111827",
+  chip: "#f6f4f0",
 };
-
-const HEADER_H = 60;
 
 const S = {
   root: {
     height: "100vh",
-    width: "100%",
-    display: "flex",
-    flexDirection: "column",
-    background: C.page,
-    color: "#171717",
-    fontFamily: 'system-ui, -apple-system, "Segoe UI", Roboto, Inter, Arial, sans-serif',
+    display: "grid",
+    gridTemplateColumns: "260px 1fr",
+    gridTemplateRows: "56px 1fr",
+    gridTemplateAreas: `
+      "top top"
+      "side main"
+    `,
+    background: PALETTE.page,
   },
 
-  /* TOP NAV */
-  header: {
-    background: C.dark,
+  /* Top bar */
+  top: {
+    gridArea: "top",
+    background: PALETTE.dark,
     color: "#fff",
-    borderBottom: `1px solid ${C.darkEdge}`,
-  },
-  headerRow: {
-    height: HEADER_H,
-    padding: "10px 14px",
     display: "flex",
     alignItems: "center",
-    justifyContent: "space-between",
+    padding: "0 14px",
     gap: 10,
+    borderBottom: `1px solid rgba(255,255,255,.08)`,
   },
-  brandRow: { display: "flex", alignItems: "center", gap: 10 },
-  logo: { width: 34, height: 34, objectFit: "contain" },
-  title: { fontWeight: 800, fontSize: 18, letterSpacing: ".2px" },
-  sub: { fontSize: 12, color: C.subText },
-  headerRight: { display: "flex", alignItems: "center", gap: 10 },
-  topBtn: {
-    border: "1px solid rgba(255,255,255,.18)",
-    color: "#fff",
-    background: "transparent",
-    padding: "8px 12px",
-    borderRadius: 10,
-    cursor: "pointer",
-  },
-  avatar: {
-    width: 34,
-    height: 34,
-    borderRadius: "50%",
-    background: "#fff",
-    color: C.dark,
-    display: "grid",
-    placeItems: "center",
-    fontWeight: 800,
-  },
+  brand: { fontWeight: 800, letterSpacing: .2 },
+  sub: { color: "rgba(255,255,255,.7)", fontSize: 12 },
 
-  /* BODY GRID */
-  body: {
-    height: `calc(100vh - ${HEADER_H}px)`,
-    width: "100%",
+  /* Sidebar */
+  side: {
+    gridArea: "side",
+    background: PALETTE.surface,
+    borderRight: `1px solid ${PALETTE.border}`,
     padding: 12,
-    display: "grid",
-    gridTemplateColumns: "240px 1fr", // compact sidebar
-    gap: 12,
-  },
-
-  /* SIDEBAR full height */
-  sidebarCard: {
-    height: "100%",
-    background: C.card,
-    border: `1px solid ${C.border}`,
-    borderRadius: 14,
-    boxShadow: C.ring,
-    padding: 8,
-    display: "flex",
-    flexDirection: "column",
-    gap: 8,
-  },
-
-  /* MAIN scrolls */
-  main: {
-    height: "100%",
     overflow: "auto",
-    display: "flex",
-    flexDirection: "column",
   },
-};
-
-const A = {
-  item: {
-    padding: "12px 12px",
-    borderRadius: 10,
-    cursor: "pointer",
-    color: "#333",
-    background: "#f9f5ee",
-    border: `1px solid ${C.border}`,
-    boxShadow: C.ring,
+  section: {
+    background: PALETTE.chip,
+    border: `1px solid ${PALETTE.border}`,
+    borderRadius: 14,
+    padding: 12,
+    marginBottom: 12,
     fontWeight: 700,
   },
+  item: {
+    background: "#fff",
+    border: `1px solid ${PALETTE.border}`,
+    borderRadius: 12,
+    padding: "12px 14px",
+    marginTop: 10,
+    display: "block",
+    color: "#111",
+    textDecoration: "none",
+  },
   itemActive: {
-    background: "#efe6d6",
-    borderColor: "#decfb6",
+    outline: "2px solid #111",
+  },
+
+  /* Main */
+  main: {
+    gridArea: "main",
+    padding: 16,
+    overflow: "auto",
+  },
+  card: {
+    background: "#fff",
+    border: `1px solid ${PALETTE.border}`,
+    borderRadius: 16,
+    padding: 12,
+    minHeight: "calc(100vh - 56px - 32px)",
   },
 };
+
+export default function PortalShell() {
+  const loc = useLocation();
+  const navigate = useNavigate();
+
+  return (
+    <div style={S.root}>
+      {/* Top bar */}
+      <header style={S.top}>
+        <img src="/logo punjab.png" alt="" style={{ width: 26, height: 26, borderRadius: 6 }} />
+        <div>
+          <div style={S.brand}>Amritsar Flood Relief</div>
+          <div style={S.sub}>Saanjha Uprala — Joint initiative by District Administration, Amritsar and Organisations</div>
+        </div>
+        <div style={{ marginLeft: "auto", display: "flex", gap: 10 }}>
+          <button
+            onClick={() => navigate("/#cta")}
+            style={{ background: "#fff", color: PALETTE.darkSoft, border: 0, borderRadius: 999, padding: "6px 12px", fontWeight: 700, cursor: "pointer" }}
+          >
+            See what you can do
+          </button>
+          <div style={{
+            width: 28, height: 28, borderRadius: "999px", background: "#fff",
+            display: "grid", placeItems: "center", color: PALETTE.darkSoft, fontWeight: 800
+          }}>
+            P
+          </div>
+        </div>
+      </header>
+
+      {/* Sidebar — only rendered on routes that use this shell */}
+      <aside style={S.side}>
+        <div style={S.section}>Villages</div>
+        <NavLink
+          to="/ngo/dashboard"
+          style={({ isActive }) => ({ ...S.item, ...(isActive ? S.itemActive : null) })}
+          end
+        >
+          All villages
+        </NavLink>
+
+        <div style={S.section}>School Requirements</div>
+        <NavLink
+          to="/ngo/dashboard/schools"
+          style={({ isActive }) => ({ ...S.item, ...(isActive ? S.itemActive : null) })}
+        >
+          School status
+        </NavLink>
+
+        <div style={S.section}>Veterinary Support</div>
+        <NavLink
+          to="/ngo/dashboard/animal"
+          style={({ isActive }) => ({ ...S.item, ...(isActive ? S.itemActive : null) })}
+        >
+          Veterinary support
+        </NavLink>
+      </aside>
+
+      {/* Main */}
+      <main style={S.main}>
+        <div style={S.card}>
+          <Outlet />
+        </div>
+      </main>
+    </div>
+  );
+}

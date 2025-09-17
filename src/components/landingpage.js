@@ -76,6 +76,9 @@ const S = {
   td: { padding: "10px 12px", borderTop: `1px solid #f1efe9`, verticalAlign: "top" },
 
   footer: { background: PALETTE.dark, color: "#f0ede9", textAlign: "center", padding: 16, borderTop: `4px solid ${PALETTE.warm}`, marginTop: 24 },
+
+  /* small list styling so your ULs look tidy */
+  list: { margin: "10px 0 0 18px", color: PALETTE.dark },
 };
 
 /* ======================= Image helpers (gallery) ===================== */
@@ -121,7 +124,7 @@ function SafeImg({ src, alt, style }) {
 /* ==================== Villages loader + layout (JSON) ==================== */
 /** slug helper for stable ids */
 function slug(tehsil, name) {
-  return `amr-${tehsil.toLowerCase().replace(/\s+/g, "-")}-${name.toLowerCase().replace(/[^a-z0-9]+/g, "-")}`;
+  return `amr-${String(tehsil).toLowerCase().replace(/\s+/g, "-")}-${String(name).toLowerCase().replace(/[^a-z0-9]+/g, "-")}`;
 }
 
 /** Lay out villages into vertical “lanes” per tehsil across the SVG. */
@@ -147,10 +150,10 @@ function layoutVillages(rawByTehsil) {
 
   const out = [];
   columns.forEach((t, i) => {
-    const names = rawByTehsil[t] || [];
+    const names = (rawByTehsil[t] || []).filter(Boolean);
     let x = xAt(i);
     let y = yStart;
-    names.forEach((name, idx) => {
+    names.forEach((name) => {
       out.push({ id: slug(t, name), village: name, tehsil: t, x, y });
       y += yStep;
       if (y > yMax) { // start a new lane to the right for this tehsil
@@ -163,18 +166,39 @@ function layoutVillages(rawByTehsil) {
   return out;
 }
 
-/** Fetch villages JSON from /public/data/amritsar_villages.json */
+/** Fetch villages JSON from /public/data/amritsar_villages.json (robust for gh-pages) */
 function useVillages() {
   const [raw, setRaw] = useState(null);
   const [error, setError] = useState(null);
 
   useEffect(() => {
-    let ok = true;
-    fetch("/data/amritsar_villages.json", { cache: "no-cache" })
-      .then((r) => r.ok ? r.json() : Promise.reject(new Error(`HTTP ${r.status}`)))
-      .then((json) => { if (ok) setRaw(json); })
-      .catch((e) => { if (ok) setError(e); });
-    return () => { ok = false; };
+    let isAlive = true;
+
+    const pub = (process.env.PUBLIC_URL || "").replace(/\/+$/, "");
+    const baseFromTag = (document.querySelector("base")?.getAttribute("href") || "").replace(/\/+$/, "");
+
+    const candidates = [
+      "data/amritsar_villages.json",
+      `${pub}/data/amritsar_villages.json`,
+      baseFromTag ? `${baseFromTag}/data/amritsar_villages.json` : null,
+      `${window.location.origin}${pub}/data/amritsar_villages.json`,
+    ].filter(Boolean).map(u => u.replace(/([^:]\/)\/+/g, "$1"));
+
+    (async () => {
+      let lastErr = null;
+      for (const url of candidates) {
+        try {
+          const res = await fetch(url, { cache: "no-cache" });
+          if (!res.ok) throw new Error(`HTTP ${res.status} at ${url}`);
+          const json = await res.json();
+          if (isAlive) { setRaw(json); setError(null); }
+          return;
+        } catch (e) { lastErr = e; }
+      }
+      if (isAlive) setError(lastErr || new Error("Failed to load villages JSON"));
+    })();
+
+    return () => { isAlive = false; };
   }, []);
 
   const villages = useMemo(() => layoutVillages(raw || {}), [raw]);
@@ -300,7 +324,7 @@ export default function LandingPage() {
             {/* Helplines */}
             <div style={S.card}>
               <div style={S.cardTitle}>Flood Control Helplines</div>
-              <ul /* style={S.list} */>
+              <ul style={S.list}>
                 <li><strong>Amritsar District Control Room:</strong> 0183-2229125</li>
                 <li><strong>Ajnala Tehsil Helpline:</strong> 01858-245510</li>
                 <li><strong>NDRF HQ:</strong> 011-24363260</li>
@@ -314,7 +338,7 @@ export default function LandingPage() {
             {/* Government Actions */}
             <div style={S.card}>
               <div style={S.cardTitle}>Key Government Actions (Recent)</div>
-              <ul /* style={S.list} */>
+              <ul style={S.list}>
                 <li><b>Power & Water:</b> PSPCL restored electricity to all 75 affected villages; chlorination in water supplies ongoing.</li>
                 <li><b>Medical Relief:</b> Health Dept set up medical camps, distributed medicines, fogging & spraying, outbreak monitoring.</li>
                 <li><b>Animal Husbandry:</b> Veterinary teams treated livestock, distributed fodder; 40 dead animals buried to prevent disease.</li>
@@ -325,7 +349,7 @@ export default function LandingPage() {
             {/* NGO Help */}
             <div style={S.card}>
               <div style={S.cardTitle}>How You Can Help</div>
-              <ul /* style={S.list} */>
+              <ul style={S.list}>
                 <li><b>Register:</b> NGOs should register their support (water, sanitation, shelter, health, animal care, logistics).</li>
                 <li><b>Coordinate:</b> All activities must be routed via the District Control Room to target urgent needs.</li>
               </ul>
@@ -383,7 +407,7 @@ export default function LandingPage() {
                 value={tehsil}
                 onChange={(e) => setTehsil(e.target.value)}
               >
-                {tehsils.map((t) => <option key={t}>{t}</option>)}
+                {["All", ...TEHSIL_LIST].map((t) => <option key={t}>{t}</option>)}
               </select>
             </div>
 

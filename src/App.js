@@ -2,44 +2,28 @@
 import React from "react";
 import { HashRouter as Router, Routes, Route, Navigate } from "react-router-dom";
 
-import LandingPage from "./components/landingpage";   // public landing
-import AuthPage from "./components/AuthPage";         // login/register
-import Dashboard from "./components/dashboard";       // villages dashboard
-import HelpForm from "./components/Helpform";         // help pledge form
-import Portal from "./components/portal";             // post-login shell
+import LandingPage from "./components/landingpage";
+import AuthPage from "./components/AuthPage";
+import Dashboard from "./components/dashboard";
+import HelpForm from "./components/Helpform";
+
+// NEW: the layout that holds top bar + sidebar
+import PortalShell from "./components/portal";
 
 export default function App() {
   return (
     <Router>
       <Routes>
-        {/* Public landing stays outside the shell */}
+        {/* Public pages (no sidebar) */}
         <Route path="/" element={<LandingPage />} />
+        <Route path="/ngo/login" element={<AuthPage />} />
 
-        {/* Post-login area uses the Portal shell */}
-        <Route
-          path="/ngo/login"
-          element={
-            <Portal>
-              <AuthPage />
-            </Portal>
-          }
-        />
-        <Route
-          path="/ngo/dashboard"
-          element={
-            <Portal>
-              <Dashboard />
-            </Portal>
-          }
-        />
-        <Route
-          path="/ngo/help/:id"
-          element={
-            <Portal>
-              <HelpForm />
-            </Portal>
-          }
-        />
+        {/* Private area with sidebar AFTER login */}
+        <Route element={<PortalShell />}>
+          <Route path="/ngo/dashboard" element={<Dashboard />} />
+          <Route path="/ngo/dashboard/:section" element={<Dashboard />} />
+          <Route path="/ngo/help/:id" element={<HelpForm />} />
+        </Route>
 
         {/* Fallback */}
         <Route path="*" element={<Navigate to="/" replace />} />
