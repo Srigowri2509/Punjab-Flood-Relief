@@ -78,14 +78,6 @@ const S = {
   footer: { background: PALETTE.dark, color: "#f0ede9", textAlign: "center", padding: 16, borderTop: `4px solid ${PALETTE.warm}`, marginTop: 24 },
 };
 
-/* ======================= Data (Amritsar only) ======================= */
-const VILLAGES = [
-  { id: "amr-ghonewala", village: "Ghonewala", tehsil: "Ramdas", x: 220, y: 140 },
-  { id: "amr-saharan", village: "Saharan", tehsil: "Ramdas", x: 340, y: 180 },
-  { id: "amr-dial-bhatti", village: "Dial Bhatti", tehsil: "Ajanala", x: 520, y: 220 },
-  { id: "amr-kamirpura", village: "Kamirpura", tehsil: "Ajanala", x: 410, y: 280 },
-];
-
 /* ======================= Image helpers (gallery) ===================== */
 function toPublicUrl(input) {
   if (!input) return input;
@@ -126,6 +118,71 @@ function SafeImg({ src, alt, style }) {
   );
 }
 
+/* ==================== Villages loader + layout (JSON) ==================== */
+/** slug helper for stable ids */
+function slug(tehsil, name) {
+  return `amr-${tehsil.toLowerCase().replace(/\s+/g, "-")}-${name.toLowerCase().replace(/[^a-z0-9]+/g, "-")}`;
+}
+
+/** Lay out villages into vertical “lanes” per tehsil across the SVG. */
+function layoutVillages(rawByTehsil) {
+  const keys = Object.keys(rawByTehsil || {});
+  if (!keys.length) return [];
+
+  // Preferred order if present, otherwise append any others
+  const pref = ["Ajnala", "Ramdas", "Rajasansi", "Lopoke", "Baba Bakala Sahib"];
+  const columns = [
+    ...pref.filter((k) => keys.includes(k)),
+    ...keys.filter((k) => !pref.includes(k)),
+  ];
+
+  // Compute X per column (evenly spaced)
+  const W = 700, left = 90, right = 90;
+  const innerW = Math.max(0, W - left - right);
+  const n = columns.length;
+  const xAt = (i) => (n === 1 ? left + innerW / 2 : left + (innerW * i) / (n - 1));
+
+  // Vertical placement
+  const yStart = 60, yStep = 16, yMax = 360, laneOffset = 24;
+
+  const out = [];
+  columns.forEach((t, i) => {
+    const names = rawByTehsil[t] || [];
+    let x = xAt(i);
+    let y = yStart;
+    names.forEach((name, idx) => {
+      out.push({ id: slug(t, name), village: name, tehsil: t, x, y });
+      y += yStep;
+      if (y > yMax) { // start a new lane to the right for this tehsil
+        y = yStart;
+        x += laneOffset;
+      }
+    });
+  });
+
+  return out;
+}
+
+/** Fetch villages JSON from /public/data/amritsar_villages.json */
+function useVillages() {
+  const [raw, setRaw] = useState(null);
+  const [error, setError] = useState(null);
+
+  useEffect(() => {
+    let ok = true;
+    fetch("/data/amritsar_villages.json", { cache: "no-cache" })
+      .then((r) => r.ok ? r.json() : Promise.reject(new Error(`HTTP ${r.status}`)))
+      .then((json) => { if (ok) setRaw(json); })
+      .catch((e) => { if (ok) setError(e); });
+    return () => { ok = false; };
+  }, []);
+
+  const villages = useMemo(() => layoutVillages(raw || {}), [raw]);
+  const tehsils = useMemo(() => Object.keys(raw || {}), [raw]);
+
+  return { villages, tehsils, error, isReady: !!raw };
+}
+
 /* =============================== Component =============================== */
 export default function LandingPage() {
   const navigate = useNavigate();
@@ -133,15 +190,19 @@ export default function LandingPage() {
   // logo on the left
   const logoSrc = "/logo punjab.png";
 
+  // Load villages from JSON
+  const { villages: VILLAGES, tehsils: TEHSIL_LIST, error, isReady } = useVillages();
+
   // Map/List state
   const [hoverPt, setHoverPt] = useState(null);
   const [selectedId, setSelectedId] = useState(null);
   const [query, setQuery] = useState("");
   const [tehsil, setTehsil] = useState("All");
 
+  // Tehsil options depend on loaded data
   const tehsils = useMemo(
-    () => ["All", ...Array.from(new Set(VILLAGES.map((v) => v.tehsil)))],
-    []
+    () => ["All", ...TEHSIL_LIST],
+    [TEHSIL_LIST]
   );
 
   const filtered = useMemo(() => {
@@ -151,7 +212,7 @@ export default function LandingPage() {
       const matchesT = tehsil === "All" || v.tehsil === tehsil;
       return matchesQ && matchesT;
     });
-  }, [query, tehsil]);
+  }, [VILLAGES, query, tehsil]);
 
   useEffect(() => {
     if (!selectedId) return;
@@ -191,8 +252,6 @@ export default function LandingPage() {
         </div>
       </section>
 
-      {/* (KPI band removed as requested) */}
-
       {/* single gallery */}
       <section style={S.band}>
         <div style={S.content}>
@@ -220,65 +279,70 @@ export default function LandingPage() {
           </div>
         </div>
       </section>
-{/* ===== BAND: Overview, Actions, Helplines, What You Can Do ===== */}
-<section style={S.band}>
-  <div style={S.content}>
-    <div style={{ display: "grid", gap: 16, gridTemplateColumns: "2fr 1fr" }}>
-      {/* Overview */}
-      <div style={S.card}>
-        <div style={S.cardTitle}>Overview</div>
-        <p>
-          Heavy and sustained rainfall, along with overflows from the Ravi River and Sakki
-          Nallah, caused significant flooding across the border districts of Amritsar. The
-          disaster affected 196 villages, impacting over 136,000 people. The report confirms
-          8 human lives were lost and multiple breaches in the river and nullah embankments.
-          The primary focus of the government's response has been on restoring essential
-          services and providing immediate relief to the most vulnerable areas.
-        </p>
-      </div>
 
-      {/* Helplines */}
-      <div style={S.card}>
-        <div style={S.cardTitle}>Flood Control Helplines</div>
-        <ul style={S.list}>
-          <li><strong>Amritsar District Control Room:</strong> 0183-2229125</li>
-          <li><strong>Ajnala Tehsil Helpline:</strong> 01858-245510</li>
-          <li><strong>NDRF HQ:</strong> 011-24363260</li>
-          <li><strong>All-India Emergency Helpline:</strong> 112</li>
-        </ul>
-      </div>
-    </div>
+      {/* ===== BAND: Overview, Actions, Helplines, What You Can Do ===== */}
+      <section style={S.band}>
+        <div style={S.content}>
+          <div style={{ display: "grid", gap: 16, gridTemplateColumns: "2fr 1fr" }}>
+            {/* Overview */}
+            <div style={S.card}>
+              <div style={S.cardTitle}>Overview</div>
+              <p>
+                Heavy and sustained rainfall, along with overflows from the Ravi River and Sakki
+                Nallah, caused significant flooding across the border districts of Amritsar. The
+                disaster affected 196 villages, impacting over 136,000 people. The report confirms
+                8 human lives were lost and multiple breaches in the river and nullah embankments.
+                The primary focus of the government's response has been on restoring essential
+                services and providing immediate relief to the most vulnerable areas.
+              </p>
+            </div>
 
-    {/* Key Actions + How You Can Help */}
-    <div style={{ display: "grid", gap: 16, gridTemplateColumns: "2fr 1fr", marginTop: 16 }}>
-      {/* Government Actions */}
-      <div style={S.card}>
-        <div style={S.cardTitle}>Key Government Actions (Recent)</div>
-        <ul style={S.list}>
-          <li><b>Power & Water:</b> PSPCL restored electricity to all 75 affected villages; chlorination in water supplies ongoing.</li>
-          <li><b>Medical Relief:</b> Health Dept set up medical camps, distributed medicines, fogging & spraying, outbreak monitoring.</li>
-          <li><b>Animal Husbandry:</b> Veterinary teams treated livestock, distributed fodder; 40 dead animals buried to prevent disease.</li>
-          <li><b>Shelter & Relief:</b> Relief centers opened, ration kits, ready-to-eat meals, blankets, mats distributed.</li>
-        </ul>
-      </div>
+            {/* Helplines */}
+            <div style={S.card}>
+              <div style={S.cardTitle}>Flood Control Helplines</div>
+              <ul /* style={S.list} */>
+                <li><strong>Amritsar District Control Room:</strong> 0183-2229125</li>
+                <li><strong>Ajnala Tehsil Helpline:</strong> 01858-245510</li>
+                <li><strong>NDRF HQ:</strong> 011-24363260</li>
+                <li><strong>All-India Emergency Helpline:</strong> 112</li>
+              </ul>
+            </div>
+          </div>
 
-      {/* NGO Help */}
-      <div style={S.card}>
-        <div style={S.cardTitle}>How You Can Help</div>
-        <ul style={S.list}>
-          <li><b>Register:</b> NGOs should register their support (water, sanitation, shelter, health, animal care, logistics).</li>
-          <li><b>Coordinate:</b> All activities must be routed via the District Control Room to target urgent needs.</li>
-        </ul>
-      </div>
-    </div>
-  </div>
-</section>
+          {/* Key Actions + How You Can Help */}
+          <div style={{ display: "grid", gap: 16, gridTemplateColumns: "2fr 1fr", marginTop: 16 }}>
+            {/* Government Actions */}
+            <div style={S.card}>
+              <div style={S.cardTitle}>Key Government Actions (Recent)</div>
+              <ul /* style={S.list} */>
+                <li><b>Power & Water:</b> PSPCL restored electricity to all 75 affected villages; chlorination in water supplies ongoing.</li>
+                <li><b>Medical Relief:</b> Health Dept set up medical camps, distributed medicines, fogging & spraying, outbreak monitoring.</li>
+                <li><b>Animal Husbandry:</b> Veterinary teams treated livestock, distributed fodder; 40 dead animals buried to prevent disease.</li>
+                <li><b>Shelter & Relief:</b> Relief centers opened, ration kits, ready-to-eat meals, blankets, mats distributed.</li>
+              </ul>
+            </div>
+
+            {/* NGO Help */}
+            <div style={S.card}>
+              <div style={S.cardTitle}>How You Can Help</div>
+              <ul /* style={S.list} */>
+                <li><b>Register:</b> NGOs should register their support (water, sanitation, shelter, health, animal care, logistics).</li>
+                <li><b>Coordinate:</b> All activities must be routed via the District Control Room to target urgent needs.</li>
+              </ul>
+            </div>
+          </div>
+        </div>
+      </section>
 
       {/* map + villages list (tehsil filter only) */}
       <section style={S.bandAlt}>
         <div style={S.content}>
           <div style={{ ...S.card, position: "relative" }}>
             <div style={S.cardTitle}>Affected Villages — Amritsar</div>
+
+            {/* Loading / error states (non-intrusive, layout unchanged) */}
+            {!isReady && !error && <div className="muted" style={{ marginBottom: 8, color: PALETTE.textSub }}>Loading villages…</div>}
+            {error && <div style={{ color: "#b91c1c", marginBottom: 8 }}>Could not load villages (check <code>/public/data/amritsar_villages.json</code>).</div>}
 
             <div style={{ position: "relative" }}>
               <svg viewBox="0 0 700 420" style={S.svgBoard}>
@@ -308,9 +372,18 @@ export default function LandingPage() {
             </div>
 
             <div style={S.filters}>
-              <input style={S.input} value={query} onChange={(e) => setQuery(e.target.value)} placeholder="Search village or tehsil…" />
-              <select style={S.select} value={tehsil} onChange={(e) => setTehsil(e.target.value)}>
-                {["All", ...new Set(VILLAGES.map(v => v.tehsil))].map((t) => <option key={t}>{t}</option>)}
+              <input
+                style={S.input}
+                value={query}
+                onChange={(e) => setQuery(e.target.value)}
+                placeholder="Search village or tehsil…"
+              />
+              <select
+                style={S.select}
+                value={tehsil}
+                onChange={(e) => setTehsil(e.target.value)}
+              >
+                {tehsils.map((t) => <option key={t}>{t}</option>)}
               </select>
             </div>
 
